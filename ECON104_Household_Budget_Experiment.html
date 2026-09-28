@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECON 104 Household Budget & GDP Experiment</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f4f6f8; color:#1f2937; }
+  .wrap { max-width:900px; margin:30px auto; padding:20px; }
+  .card { background:white; border-radius:14px; padding:28px; margin-bottom:18px; box-shadow:0 3px 14px rgba(0,0,0,.08); }
+  h1 { margin-top:0; font-size:30px; }
+  h2 { margin-top:0; }
+  .income { font-size:34px; font-weight:700; margin:10px 0 4px; }
+  .code { color:#6b7280; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  label { display:block; font-weight:700; margin-bottom:6px; }
+  input { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:17px; }
+  .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px; }
+  .metric { background:#f8fafc; border-radius:10px; padding:15px; }
+  .metric strong { display:block; font-size:22px; margin-top:5px; }
+  .warning { display:none; background:#fff1f2; border:1px solid #fecdd3; color:#9f1239; padding:12px; border-radius:8px; margin-top:15px; }
+  button { background:#111827; color:white; border:0; border-radius:8px; padding:13px 20px; font-size:16px; cursor:pointer; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .result { display:none; }
+  .bar-wrap { margin:15px 0; }
+  .bar-label { display:flex; justify-content:space-between; margin-bottom:5px; }
+  .bar { height:18px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
+  .fill { height:100%; background:#374151; width:0; }
+  .note { color:#4b5563; line-height:1.55; }
+  .small { font-size:14px; color:#6b7280; }
+  @media(max-width:700px){ .grid,.summary{grid-template-columns:1fr;} .wrap{margin:10px auto;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>ECON 104: Household Budget & GDP Experiment</h1>
+    <p class="note">You have been randomly assigned a household budget. Decide how to allocate your money among consumption and saving.</p>
+    <div class="small">Your participant code</div>
+    <div class="code" id="participantCode"></div>
+    <div class="small" style="margin-top:18px;">Random household income</div>
+    <div class="income" id="incomeDisplay"></div>
+    <p class="small">Your income is randomly generated when you open this experiment.</p>
+  </div>
+
+  <div class="card">
+    <h2>Allocate Your Income</h2>
+    <div class="grid">
+      <div>
+        <label for="durable">Durable goods</label>
+        <input id="durable" type="number" min="0" step="1" placeholder="e.g., furniture, appliances, cars">
+      </div>
+      <div>
+        <label for="nondurable">Nondurable goods</label>
+        <input id="nondurable" type="number" min="0" step="1" placeholder="e.g., food, gasoline, clothing">
+      </div>
+      <div>
+        <label for="services">Services</label>
+        <input id="services" type="number" min="0" step="1" placeholder="e.g., healthcare, education, entertainment">
+      </div>
+      <div>
+        <label for="saving">Saving</label>
+        <input id="saving" type="number" min="0" step="1" placeholder="Money not spent today">
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="metric">Allocated<strong id="allocated">$0</strong></div>
+      <div class="metric">Remaining<strong id="remaining">$0</strong></div>
+      <div class="metric">Consumption (C)<strong id="consumption">$0</strong></div>
+    </div>
+
+    <div class="warning" id="warning">Your allocation is greater than your income. Reduce one or more categories before submitting.</div>
+    <br>
+    <button id="submitBtn" disabled>Submit Allocation</button>
+  </div>
+
+  <div class="card result" id="result">
+    <h2>Your Result</h2>
+    <p>Your household allocated <strong id="resultTotal"></strong> of <strong id="resultIncome"></strong>.</p>
+    <p>Current consumption (C) is <strong id="resultC"></strong>.</p>
+
+    <div class="bar-wrap">
+      <div class="bar-label"><span>Durable goods</span><span id="rDurable"></span></div>
+      <div class="bar"><div class="fill" id="bDurable"></div></div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-label"><span>Nondurable goods</span><span id="rNondurable"></span></div>
+      <div class="bar"><div class="fill" id="bNondurable"></div></div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-label"><span>Services</span><span id="rServices"></span></div>
+      <div class="bar"><div class="fill" id="bServices"></div></div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-label"><span>Saving</span><span id="rSaving"></span></div>
+      <div class="bar"><div class="fill" id="bSaving"></div></div>
+    </div>
+
+    <p class="note"><strong>GDP connection:</strong> In this experiment, household consumption is the sum of durable goods, nondurable goods, and services. Saving is not counted as current consumption.</p>
+    <p class="small">This prototype stores your result only in this browser. It does not send your response to your instructor.</p>
+  </div>
+</div>
+
+<script>
+const income = Math.floor(Math.random() * 3001) + 1500; // $1,500–$4,500
+const participantCode = 'P-' + Math.floor(Math.random() * 9000 + 1000);
+
+document.getElementById('incomeDisplay').textContent = '$' + income.toLocaleString();
+document.getElementById('participantCode').textContent = participantCode;
+
+const inputs = ['durable','nondurable','services','saving'].map(id => document.getElementById(id));
+const allocatedEl = document.getElementById('allocated');
+const remainingEl = document.getElementById('remaining');
+const consumptionEl = document.getElementById('consumption');
+const warning = document.getElementById('warning');
+const submitBtn = document.getElementById('submitBtn');
+
+function value(id){ return Math.max(0, Number(document.getElementById(id).value) || 0); }
+function money(x){ return '$' + Math.round(x).toLocaleString(); }
+
+function update(){
+  const durable=value('durable'), nondurable=value('nondurable'), services=value('services'), saving=value('saving');
+  const total=durable+nondurable+services+saving;
+  const c=durable+nondurable+services;
+  const remaining=income-total;
+  allocatedEl.textContent=money(total);
+  remainingEl.textContent=money(remaining);
+  consumptionEl.textContent=money(c);
+  const over=total>income;
+  warning.style.display=over ? 'block' : 'none';
+  submitBtn.disabled=over;
+}
+inputs.forEach(i=>i.addEventListener('input',update));
+
+submitBtn.addEventListener('click',()=>{
+  const d=value('durable'), n=value('nondurable'), s=value('services'), sv=value('saving');
+  const total=d+n+s+sv, c=d+n+s;
+  document.getElementById('resultTotal').textContent=money(total);
+  document.getElementById('resultIncome').textContent=money(income);
+  document.getElementById('resultC').textContent=money(c);
+  const cats=[['Durable','rDurable','bDurable',d],['Nondurable','rNondurable','bNondurable',n],['Services','rServices','bServices',s],['Saving','rSaving','bSaving',sv]];
+  cats.forEach(x=>{
+    document.getElementById(x[1]).textContent=money(x[3]);
+    document.getElementById(x[2]).style.width=(income ? Math.min(100,(x[3]/income)*100) : 0)+'%';
+  });
+  document.getElementById('result').style.display='block';
+  document.getElementById('result').scrollIntoView({behavior:'smooth'});
+});
+
+update();
+</script>
+</body>
+</html>
